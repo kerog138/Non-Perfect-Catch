@@ -1,1 +1,3055 @@
-Get Outta Here Skid, If You Want Access Just Dm Me Bro 😭
+--[[
+    FISCH
+    Matcha LuaVM
+
+    Force Non-Perfect Catch
+        Keyboard X = toggle
+
+    Tranquility Auto Rhythm
+        WIP / currently locked
+
+    made by kerog138 on discord
+]]
+
+------------------------------------------------------------
+-- CLEAN OLD COPY
+------------------------------------------------------------
+
+if _G.KeroFishingHelpersDestroy then
+    pcall(_G.KeroFishingHelpersDestroy)
+    _G.KeroFishingHelpersDestroy = nil
+end
+
+------------------------------------------------------------
+-- SERVICES
+------------------------------------------------------------
+
+local Players =
+    game:GetService("Players")
+
+local RunService =
+    game:GetService("RunService")
+
+local Workspace =
+    game:GetService("Workspace")
+
+local UserInputService =
+    game:GetService("UserInputService")
+
+local HttpService =
+    game:GetService("HttpService")
+
+local LocalPlayer =
+    Players.LocalPlayer
+
+local Camera =
+    Workspace.CurrentCamera
+
+------------------------------------------------------------
+-- SCRIPT STATE
+------------------------------------------------------------
+
+local running = true
+local destroyed = false
+
+------------------------------------------------------------
+-- ========================================================
+-- PREFERENCES
+-- ========================================================
+------------------------------------------------------------
+
+local CONFIG_FOLDER =
+    "FISCH"
+
+local CONFIG_FILE =
+    "FISCH/preferences.json"
+
+local Preferences = {
+    nonPerfectEnabled = false,
+
+    uiX = 55,
+    uiY = 80
+}
+
+------------------------------------------------------------
+-- CREATE WORKSPACE FOLDER
+------------------------------------------------------------
+
+local function ensurePreferencesFolder()
+    if type(isfolder) == "function"
+        and type(makefolder) == "function" then
+
+        local ok, exists =
+            pcall(
+                isfolder,
+                CONFIG_FOLDER
+            )
+
+        if not ok
+            or not exists then
+
+            pcall(
+                makefolder,
+                CONFIG_FOLDER
+            )
+        end
+    elseif type(makefolder) == "function" then
+
+        pcall(
+            makefolder,
+            CONFIG_FOLDER
+        )
+    end
+end
+
+------------------------------------------------------------
+-- LOAD PREFERENCES
+------------------------------------------------------------
+
+local function loadPreferences()
+    ensurePreferencesFolder()
+
+    if type(isfile) ~= "function"
+        or type(readfile) ~= "function" then
+
+        return
+    end
+
+    local okExists, exists =
+        pcall(
+            isfile,
+            CONFIG_FILE
+        )
+
+    if not okExists
+        or not exists then
+
+        return
+    end
+
+    local okRead, raw =
+        pcall(
+            readfile,
+            CONFIG_FILE
+        )
+
+    if not okRead
+        or type(raw) ~= "string"
+        or raw == "" then
+
+        return
+    end
+
+    local okDecode, decoded =
+        pcall(function()
+
+            return HttpService:
+                JSONDecode(
+                    raw
+                )
+        end)
+
+    if not okDecode
+        or type(decoded) ~= "table" then
+
+        return
+    end
+
+    if type(
+        decoded.nonPerfectEnabled
+    ) == "boolean" then
+
+        Preferences.nonPerfectEnabled =
+            decoded.nonPerfectEnabled
+    end
+
+    if type(decoded.uiX)
+        == "number" then
+
+        Preferences.uiX =
+            decoded.uiX
+    end
+
+    if type(decoded.uiY)
+        == "number" then
+
+        Preferences.uiY =
+            decoded.uiY
+    end
+end
+
+------------------------------------------------------------
+-- SAVE PREFERENCES
+------------------------------------------------------------
+
+local function savePreferences()
+    ensurePreferencesFolder()
+
+    if type(writefile)
+        ~= "function" then
+
+        return
+    end
+
+    local okEncode, raw =
+        pcall(function()
+
+            return HttpService:
+                JSONEncode({
+                    nonPerfectEnabled =
+                        Preferences.nonPerfectEnabled,
+
+                    uiX =
+                        Preferences.uiX,
+
+                    uiY =
+                        Preferences.uiY
+                })
+        end)
+
+    if not okEncode
+        or not raw then
+
+        return
+    end
+
+    pcall(
+        writefile,
+        CONFIG_FILE,
+        raw
+    )
+end
+
+------------------------------------------------------------
+-- LOAD SAVED SETTINGS
+------------------------------------------------------------
+
+loadPreferences()
+
+------------------------------------------------------------
+-- TIME
+------------------------------------------------------------
+
+local function clock()
+    if type(tick) == "function" then
+        return tick()
+    end
+
+    return os.clock()
+end
+
+------------------------------------------------------------
+-- PLAYER GUI
+------------------------------------------------------------
+
+local function getPlayerGui()
+    if not LocalPlayer then
+
+        LocalPlayer =
+            Players.LocalPlayer
+    end
+
+    if not LocalPlayer then
+        return nil
+    end
+
+    local gui = nil
+
+    pcall(function()
+
+        gui =
+            LocalPlayer:
+            FindFirstChildOfClass(
+                "PlayerGui"
+            )
+    end)
+
+    if gui then
+        return gui
+    end
+
+    pcall(function()
+
+        gui =
+            LocalPlayer:
+            FindFirstChild(
+                "PlayerGui"
+            )
+    end)
+
+    return gui
+end
+
+------------------------------------------------------------
+-- ROBLOX ACTIVE
+------------------------------------------------------------
+
+local function isRobloxActive()
+    if type(isrbxactive)
+        ~= "function" then
+
+        return true
+    end
+
+    local ok, active =
+        pcall(
+            isrbxactive
+        )
+
+    if not ok then
+        return true
+    end
+
+    return active == true
+end
+
+------------------------------------------------------------
+-- RAW KEY CHECK
+------------------------------------------------------------
+
+local function rawKeyDown(key)
+    if type(iskeypressed)
+        == "function" then
+
+        local ok, state =
+            pcall(
+                iskeypressed,
+                key
+            )
+
+        if ok and state then
+            return true
+        end
+    end
+
+    if type(isKeyPressed)
+        == "function" then
+
+        local ok, state =
+            pcall(
+                isKeyPressed,
+                key
+            )
+
+        if ok and state then
+            return true
+        end
+    end
+
+    if type(input)
+        == "table" then
+
+        if type(input.iskeypressed)
+            == "function" then
+
+            local ok, state =
+                pcall(
+                    input.iskeypressed,
+                    key
+                )
+
+            if ok and state then
+                return true
+            end
+        end
+
+        if type(input.is_key_pressed)
+            == "function" then
+
+            local ok, state =
+                pcall(
+                    input.is_key_pressed,
+                    key
+                )
+
+            if ok and state then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
+------------------------------------------------------------
+-- X HOTKEY
+------------------------------------------------------------
+
+local function xDown()
+    if rawKeyDown(
+        0x58
+    ) then
+
+        return true
+    end
+
+    local state = false
+
+    pcall(function()
+
+        state =
+            UserInputService:
+            IsKeyDown(
+                Enum.KeyCode.X
+            )
+    end)
+
+    return state
+end
+
+------------------------------------------------------------
+-- MOUSE
+------------------------------------------------------------
+
+local function mouseDown()
+    if type(ismouse1pressed)
+        == "function" then
+
+        local ok, state =
+            pcall(
+                ismouse1pressed
+            )
+
+        if ok and state then
+            return true
+        end
+    end
+
+    if rawKeyDown(
+        0x01
+    ) then
+
+        return true
+    end
+
+    local state = false
+
+    pcall(function()
+
+        state =
+            UserInputService:
+            IsMouseButtonPressed(
+                Enum.UserInputType.MouseButton1
+            )
+    end)
+
+    return state
+end
+
+local function mouseXY()
+    if not LocalPlayer then
+        return nil, nil
+    end
+
+    local mouse = nil
+
+    pcall(function()
+
+        mouse =
+            LocalPlayer:
+            GetMouse()
+    end)
+
+    if not mouse then
+        return nil, nil
+    end
+
+    local x = nil
+    local y = nil
+
+    pcall(function()
+
+        x =
+            mouse.X
+
+        y =
+            mouse.Y
+    end)
+
+    if type(x) ~= "number"
+        or type(y) ~= "number" then
+
+        return nil, nil
+    end
+
+    return x, y
+end
+
+------------------------------------------------------------
+-- ========================================================
+-- MATCHA KEY TAP
+-- ========================================================
+------------------------------------------------------------
+
+local activeInjectedKeys = {}
+
+local function tapKey(
+    keyCode,
+    holdMilliseconds
+)
+
+    if destroyed
+        or not running then
+
+        return false
+    end
+
+    if not isRobloxActive() then
+        return false
+    end
+
+    if type(keypress) ~= "function"
+        or type(keyrelease) ~= "function" then
+
+        return false
+    end
+
+    if activeInjectedKeys[
+        keyCode
+    ] then
+
+        return false
+    end
+
+    activeInjectedKeys[
+        keyCode
+    ] =
+        true
+
+    task.spawn(function()
+
+        pcall(function()
+
+            keypress(
+                keyCode
+            )
+        end)
+
+        task.wait(
+            (holdMilliseconds or 30)
+            / 1000
+        )
+
+        pcall(function()
+
+            keyrelease(
+                keyCode
+            )
+        end)
+
+        activeInjectedKeys[
+            keyCode
+        ] =
+            nil
+    end)
+
+    return true
+end
+
+------------------------------------------------------------
+-- RELEASE ARROWS
+------------------------------------------------------------
+
+local function releaseAllArrows()
+    activeInjectedKeys =
+        {}
+
+    if type(keyrelease)
+        ~= "function" then
+
+        return
+    end
+
+    pcall(
+        keyrelease,
+        0x25
+    )
+
+    pcall(
+        keyrelease,
+        0x28
+    )
+
+    pcall(
+        keyrelease,
+        0x26
+    )
+
+    pcall(
+        keyrelease,
+        0x27
+    )
+end
+
+------------------------------------------------------------
+-- ========================================================
+-- NON PERFECT
+-- ========================================================
+------------------------------------------------------------
+
+local NonPerfect = {
+    enabled = false,
+
+    cache = nil,
+
+    worker = nil,
+
+    generation = 0,
+
+    active = false,
+
+    lastSearch = 0,
+    lastWrite = 0,
+
+    harpoonTime = 0,
+    harpoonCache = false
+}
+
+------------------------------------------------------------
+-- ENABLED GUI
+------------------------------------------------------------
+
+local function guiEnabled(object)
+    if not object then
+        return false
+    end
+
+    local ok, enabled =
+        pcall(function()
+
+            return object.Enabled
+        end)
+
+    if ok
+        and type(enabled)
+            == "boolean" then
+
+        return enabled
+    end
+
+    return true
+end
+
+------------------------------------------------------------
+-- REEL
+------------------------------------------------------------
+
+local function reelActive()
+    local gui =
+        getPlayerGui()
+
+    if not gui then
+        return false
+    end
+
+    local reel = nil
+
+    pcall(function()
+
+        reel =
+            gui:
+            FindFirstChild(
+                "reel"
+            )
+    end)
+
+    return reel ~= nil
+        and guiEnabled(
+            reel
+        )
+end
+
+------------------------------------------------------------
+-- HARPOON
+------------------------------------------------------------
+
+local function harpoonActive()
+    local now =
+        clock()
+
+    if now
+        - NonPerfect.harpoonTime
+        < 0.25 then
+
+        return
+            NonPerfect.harpoonCache
+    end
+
+    NonPerfect.harpoonTime =
+        now
+
+    local result =
+        false
+
+    pcall(function()
+
+        local character =
+            LocalPlayer
+            and LocalPlayer.Character
+
+        if character then
+
+            if character:
+                GetAttribute(
+                    "HarpoonMinigameActive"
+                )
+                or character:
+                    GetAttribute(
+                        "HarpoonMinigame"
+                    ) then
+
+                result =
+                    true
+
+            else
+
+                local tool =
+                    character:
+                    FindFirstChildOfClass(
+                        "Tool"
+                    )
+
+                if tool then
+
+                    local name =
+                        tool.Name:
+                        lower()
+
+                    local harpoon =
+                        name:find(
+                            "harpoon",
+                            1,
+                            true
+                        )
+                        or name:find(
+                            "spear",
+                            1,
+                            true
+                        )
+
+                    if harpoon
+                        and not name:find(
+                            "halibut",
+                            1,
+                            true
+                        ) then
+
+                        result =
+                            true
+                    end
+                end
+            end
+        end
+
+        if not result then
+
+            local gui =
+                getPlayerGui()
+
+            if gui then
+
+                for _, child in ipairs(
+                    gui:GetChildren()
+                ) do
+
+                    if child:IsA(
+                        "ScreenGui"
+                    )
+                        and child.Enabled
+                        and child.Name:
+                            lower():
+                            find(
+                                "harpoonminigame",
+                                1,
+                                true
+                            ) then
+
+                        result =
+                            true
+
+                        break
+                    end
+                end
+            end
+        end
+    end)
+
+    NonPerfect.harpoonCache =
+        result
+
+    return result
+end
+
+------------------------------------------------------------
+-- PERFECT CACHE
+------------------------------------------------------------
+
+local function findPerfectCache(
+    force
+)
+
+    if type(getgc)
+        ~= "function" then
+
+        return nil
+    end
+
+    local now =
+        clock()
+
+    if not force then
+
+        if NonPerfect.cache then
+
+            return
+                NonPerfect.cache
+        end
+
+        if now
+            - NonPerfect.lastSearch
+            < 2 then
+
+            return nil
+        end
+    end
+
+    NonPerfect.lastSearch =
+        now
+
+    local ok, result =
+        pcall(function()
+
+            return getgc({
+                "perfect"
+            })
+        end)
+
+    if ok
+        and result then
+
+        NonPerfect.cache =
+            result
+    end
+
+    return
+        NonPerfect.cache
+end
+
+------------------------------------------------------------
+-- READ PERFECT
+------------------------------------------------------------
+
+local function readPerfect()
+    if not NonPerfect.cache then
+        return nil
+    end
+
+    local ok, value =
+        pcall(function()
+
+            return
+                NonPerfect.cache.perfect
+        end)
+
+    if ok then
+        return value
+    end
+
+    return nil
+end
+
+------------------------------------------------------------
+-- WRITE PERFECT
+------------------------------------------------------------
+
+local function writePerfect(
+    value
+)
+
+    if type(applygc)
+        ~= "function" then
+
+        return false
+    end
+
+    local cache =
+        NonPerfect.cache
+        or findPerfectCache(
+            false
+        )
+
+    if not cache then
+        return false
+    end
+
+    return pcall(
+        applygc,
+        cache,
+        "perfect",
+        value
+    )
+end
+
+------------------------------------------------------------
+-- STOP NON PERFECT
+------------------------------------------------------------
+
+local function stopNonPerfect()
+    NonPerfect.generation =
+        NonPerfect.generation
+        + 1
+
+    NonPerfect.active =
+        false
+
+    if NonPerfect.worker then
+
+        pcall(function()
+
+            NonPerfect.worker:
+                Disconnect()
+        end)
+
+        NonPerfect.worker =
+            nil
+    end
+
+    if NonPerfect.cache
+        and type(applygc)
+            == "function" then
+
+        pcall(
+            applygc,
+            NonPerfect.cache,
+            "perfect",
+            true
+        )
+    end
+end
+
+------------------------------------------------------------
+-- START NON PERFECT
+------------------------------------------------------------
+
+local function startNonPerfect()
+    if type(getgc)
+        ~= "function"
+        or type(applygc)
+            ~= "function" then
+
+        return false
+    end
+
+    if NonPerfect.worker then
+
+        pcall(function()
+
+            NonPerfect.worker:
+                Disconnect()
+        end)
+
+        NonPerfect.worker =
+            nil
+    end
+
+    NonPerfect.generation =
+        NonPerfect.generation
+        + 1
+
+    local generation =
+        NonPerfect.generation
+
+    NonPerfect.lastWrite =
+        0
+
+    if not NonPerfect.cache then
+
+        NonPerfect.lastSearch =
+            0
+
+        task.spawn(function()
+
+            findPerfectCache(
+                true
+            )
+        end)
+    end
+
+    NonPerfect.worker =
+        RunService.Heartbeat:
+        Connect(function()
+
+            if destroyed
+                or not running
+                or not NonPerfect.enabled then
+
+                return
+            end
+
+            if generation
+                ~= NonPerfect.generation then
+
+                return
+            end
+
+            if not reelActive()
+                or harpoonActive() then
+
+                NonPerfect.active =
+                    false
+
+                return
+            end
+
+            if not NonPerfect.cache then
+
+                NonPerfect.active =
+                    false
+
+                findPerfectCache(
+                    false
+                )
+
+                return
+            end
+
+            if readPerfect()
+                == false then
+
+                NonPerfect.active =
+                    true
+
+                return
+            end
+
+            local now =
+                clock()
+
+            if now
+                - NonPerfect.lastWrite
+                >= 0.1 then
+
+                NonPerfect.lastWrite =
+                    now
+
+                if writePerfect(
+                    false
+                ) then
+
+                    NonPerfect.active =
+                        true
+                end
+            end
+        end)
+
+    return true
+end
+
+------------------------------------------------------------
+-- SET NON PERFECT
+------------------------------------------------------------
+
+local function setNonPerfect(
+    value,
+    silent
+)
+
+    if destroyed
+        or not running then
+
+        return
+    end
+
+    value =
+        value == true
+
+    if NonPerfect.enabled
+        == value then
+
+        return
+    end
+
+    if value then
+
+        NonPerfect.enabled =
+            true
+
+        if not startNonPerfect() then
+
+            NonPerfect.enabled =
+                false
+
+            Preferences.nonPerfectEnabled =
+                false
+
+            savePreferences()
+
+            if not silent then
+
+                print(
+                    "(kero) Force Non-Perfect Catch failed to enable"
+                )
+            end
+
+            return
+        end
+
+        Preferences.nonPerfectEnabled =
+            true
+
+        savePreferences()
+
+        if not silent then
+
+            print(
+                "(kero) Force Non-Perfect Catch Enabled"
+            )
+        end
+
+    else
+
+        NonPerfect.enabled =
+            false
+
+        stopNonPerfect()
+
+        Preferences.nonPerfectEnabled =
+            false
+
+        savePreferences()
+
+        if not silent then
+
+            print(
+                "(kero) Force Non-Perfect Catch Disabled"
+            )
+        end
+    end
+end
+
+local function toggleNonPerfect()
+    setNonPerfect(
+        not NonPerfect.enabled,
+        false
+    )
+end
+
+------------------------------------------------------------
+-- ========================================================
+-- TRANQUILITY
+--
+-- FEATURE CODE STILL EXISTS.
+-- UI ENABLE IS LOCKED WHILE WIP.
+-- ========================================================
+------------------------------------------------------------
+
+local Tranquility = {
+    enabled = false,
+
+    worker = nil,
+
+    generation = 0,
+
+    status = "WIP",
+
+    notesSeen = 0,
+
+    presses = 0,
+
+    lastKey = "None",
+
+    lastY = nil,
+
+    lastSource = "None",
+
+    hitNotes = {},
+
+    oldY = {},
+
+    HIT_MIN = 0.78,
+    HIT_MAX = 0.90,
+
+    TARGET_Y = 0.84
+}
+
+------------------------------------------------------------
+-- LANE KEYS
+------------------------------------------------------------
+
+local LANE_KEYS = {
+    [1] = 0x25,
+    [2] = 0x28,
+    [3] = 0x26,
+    [4] = 0x27
+}
+
+local LANE_NAMES = {
+    [1] = "LEFT",
+    [2] = "DOWN",
+    [3] = "UP",
+    [4] = "RIGHT"
+}
+
+------------------------------------------------------------
+-- TRANQUILITY CONTEXT
+------------------------------------------------------------
+
+local function tranquilityContext()
+    local gui =
+        getPlayerGui()
+
+    if not gui then
+
+        return nil,
+            "PlayerGui missing"
+    end
+
+    local screen =
+        nil
+
+    pcall(function()
+
+        screen =
+            gui:
+            FindFirstChild(
+                "TranquilityRodRhythmGame"
+            )
+    end)
+
+    if not screen then
+
+        return nil,
+            "WAITING"
+    end
+
+    local root =
+        nil
+
+    pcall(function()
+
+        root =
+            screen:
+            FindFirstChild(
+                "RhythmGame"
+            )
+    end)
+
+    if not root then
+
+        return nil,
+            "RhythmGame missing"
+    end
+
+    local container =
+        nil
+
+    pcall(function()
+
+        container =
+            root:
+            FindFirstChild(
+                "LaneContainer"
+            )
+    end)
+
+    if not container then
+
+        return nil,
+            "LaneContainer missing"
+    end
+
+    local lanes = {}
+
+    for index = 1, 4 do
+
+        pcall(function()
+
+            lanes[index] =
+                container:
+                FindFirstChild(
+                    "Lane"
+                    .. tostring(
+                        index
+                    )
+                )
+        end)
+
+        if not lanes[index] then
+
+            return nil,
+                "Lane"
+                .. tostring(
+                    index
+                )
+                .. " missing"
+        end
+    end
+
+    return {
+        screen = screen,
+        root = root,
+        container = container,
+        lanes = lanes
+    },
+    "ACTIVE"
+end
+
+------------------------------------------------------------
+-- EXACT NOTE
+------------------------------------------------------------
+
+local function isRhythmNote(
+    object
+)
+
+    if not object then
+        return false
+    end
+
+    local ok, valid =
+        pcall(function()
+
+            return object.Name
+                == "Note"
+                and object:
+                    IsA(
+                        "ImageLabel"
+                    )
+        end)
+
+    return ok
+        and valid == true
+end
+
+------------------------------------------------------------
+-- NOTE ID
+------------------------------------------------------------
+
+local function noteId(
+    note
+)
+
+    local ok, address =
+        pcall(function()
+
+            return note.Address
+        end)
+
+    if ok
+        and address then
+
+        return tostring(
+            address
+        )
+    end
+
+    return tostring(
+        note
+    )
+end
+
+------------------------------------------------------------
+-- NOTE Y
+------------------------------------------------------------
+
+local function readNoteY(
+    note,
+    lane
+)
+
+    do
+
+        local ok, value =
+            pcall(function()
+
+                return
+                    note.Position.Y.Scale
+            end)
+
+        if ok
+            and type(value)
+                == "number"
+            and value > -2
+            and value < 2 then
+
+            return
+                value,
+                "Position"
+        end
+    end
+
+    do
+
+        local ok, value =
+            pcall(function()
+
+                local notePosition =
+                    note.AbsolutePosition
+
+                local noteSize =
+                    note.AbsoluteSize
+
+                local lanePosition =
+                    lane.AbsolutePosition
+
+                local laneSize =
+                    lane.AbsoluteSize
+
+                if not notePosition
+                    or not noteSize
+                    or not lanePosition
+                    or not laneSize then
+
+                    return nil
+                end
+
+                if laneSize.Y
+                    <= 1 then
+
+                    return nil
+                end
+
+                local noteCenterY =
+                    notePosition.Y
+                    + (
+                        noteSize.Y
+                        / 2
+                    )
+
+                return (
+                    noteCenterY
+                    - lanePosition.Y
+                )
+                    / laneSize.Y
+            end)
+
+        if ok
+            and type(value)
+                == "number"
+            and value > -2
+            and value < 2 then
+
+            return
+                value,
+                "Absolute"
+        end
+    end
+
+    return nil,
+        "Unreadable"
+end
+
+------------------------------------------------------------
+-- TAP TRANQUILITY LANE
+------------------------------------------------------------
+
+local function tapLane(
+    laneIndex
+)
+
+    local keyCode =
+        LANE_KEYS[
+            laneIndex
+        ]
+
+    if not keyCode then
+        return false
+    end
+
+    if tapKey(
+        keyCode,
+        30
+    ) then
+
+        Tranquility.presses =
+            Tranquility.presses
+            + 1
+
+        Tranquility.lastKey =
+            LANE_NAMES[
+                laneIndex
+            ]
+
+        return true
+    end
+
+    return false
+end
+
+------------------------------------------------------------
+-- UPDATE TRANQUILITY
+------------------------------------------------------------
+
+local function updateTranquility()
+    local context,
+        status =
+        tranquilityContext()
+
+    Tranquility.status =
+        status
+
+    Tranquility.notesSeen =
+        0
+
+    Tranquility.lastY =
+        nil
+
+    Tranquility.lastSource =
+        "None"
+
+    if not context then
+        return
+    end
+
+    local alive = {}
+
+    for laneIndex = 1, 4 do
+
+        local lane =
+            context.lanes[
+                laneIndex
+            ]
+
+        local ok, list =
+            pcall(function()
+
+                return
+                    lane:
+                    GetChildren()
+            end)
+
+        if ok and list then
+
+            for _, note in ipairs(
+                list
+            ) do
+
+                if isRhythmNote(
+                    note
+                ) then
+
+                    Tranquility.notesSeen =
+                        Tranquility.notesSeen
+                        + 1
+
+                    local id =
+                        noteId(
+                            note
+                        )
+
+                    alive[id] =
+                        true
+
+                    local y,
+                        source =
+                        readNoteY(
+                            note,
+                            lane
+                        )
+
+                    if type(y)
+                        == "number" then
+
+                        if Tranquility.lastY
+                            == nil
+                            or y
+                                > Tranquility.lastY then
+
+                            Tranquility.lastY =
+                                y
+
+                            Tranquility.lastSource =
+                                source
+                        end
+
+                        if not Tranquility.hitNotes[
+                            id
+                        ] then
+
+                            local previous =
+                                Tranquility.oldY[
+                                    id
+                                ]
+
+                            Tranquility.oldY[
+                                id
+                            ] =
+                                y
+
+                            local insideWindow =
+                                y
+                                    >= Tranquility.HIT_MIN
+
+                                and y
+                                    <= Tranquility.HIT_MAX
+
+                            local crossedWindow =
+                                previous
+                                    ~= nil
+
+                                and previous
+                                    < Tranquility.HIT_MIN
+
+                                and y
+                                    > Tranquility.HIT_MAX
+
+                                and y
+                                    < 1.08
+
+                            if insideWindow
+                                or crossedWindow then
+
+                                if tapLane(
+                                    laneIndex
+                                ) then
+
+                                    Tranquility.hitNotes[
+                                        id
+                                    ] =
+                                        true
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    for id in pairs(
+        Tranquility.hitNotes
+    ) do
+
+        if not alive[id] then
+
+            Tranquility.hitNotes[
+                id
+            ] =
+                nil
+        end
+    end
+
+    for id in pairs(
+        Tranquility.oldY
+    ) do
+
+        if not alive[id] then
+
+            Tranquility.oldY[
+                id
+            ] =
+                nil
+        end
+    end
+end
+
+------------------------------------------------------------
+-- START TRANQUILITY
+------------------------------------------------------------
+
+local function startTranquility()
+    if destroyed
+        or not running then
+
+        return false
+    end
+
+    if type(keypress)
+        ~= "function"
+        or type(keyrelease)
+            ~= "function" then
+
+        return false
+    end
+
+    if type(setrobloxinput)
+        == "function" then
+
+        pcall(
+            setrobloxinput,
+            true
+        )
+    end
+
+    releaseAllArrows()
+
+    if Tranquility.worker then
+
+        pcall(function()
+
+            Tranquility.worker:
+                Disconnect()
+        end)
+
+        Tranquility.worker =
+            nil
+    end
+
+    Tranquility.generation =
+        Tranquility.generation
+        + 1
+
+    local generation =
+        Tranquility.generation
+
+    Tranquility.worker =
+        RunService.RenderStepped:
+        Connect(function()
+
+            if destroyed
+                or not running
+                or not Tranquility.enabled then
+
+                return
+            end
+
+            if generation
+                ~= Tranquility.generation then
+
+                return
+            end
+
+            pcall(
+                updateTranquility
+            )
+        end)
+
+    return true
+end
+
+------------------------------------------------------------
+-- STOP TRANQUILITY
+------------------------------------------------------------
+
+local function stopTranquility()
+    Tranquility.generation =
+        Tranquility.generation
+        + 1
+
+    if Tranquility.worker then
+
+        pcall(function()
+
+            Tranquility.worker:
+                Disconnect()
+        end)
+
+        Tranquility.worker =
+            nil
+    end
+
+    releaseAllArrows()
+
+    Tranquility.enabled =
+        false
+
+    Tranquility.status =
+        "WIP"
+
+    Tranquility.notesSeen =
+        0
+
+    Tranquility.presses =
+        0
+
+    Tranquility.lastKey =
+        "None"
+
+    Tranquility.lastY =
+        nil
+
+    Tranquility.hitNotes =
+        {}
+
+    Tranquility.oldY =
+        {}
+end
+
+------------------------------------------------------------
+-- LOCKED WHILE WIP
+------------------------------------------------------------
+
+local function setTranquility(
+    value
+)
+
+    --------------------------------------------------------
+    -- Feature remains in the script, but cannot currently
+    -- be enabled from this build.
+    --------------------------------------------------------
+
+    Tranquility.enabled =
+        false
+
+    Tranquility.status =
+        "WIP"
+
+    return false
+end
+
+------------------------------------------------------------
+-- ========================================================
+-- UI
+-- ========================================================
+------------------------------------------------------------
+
+local UI = {
+    x =
+        Preferences.uiX,
+
+    y =
+        Preferences.uiY,
+
+    w = 570,
+    h = 330,
+
+    squares = {},
+    texts = {},
+
+    sqUsed = 0,
+    txUsed = 0,
+
+    dragging = false,
+
+    dragDX = 0,
+    dragDY = 0,
+
+    lastMouse = false,
+    lastX = false
+}
+
+------------------------------------------------------------
+-- COLORS
+------------------------------------------------------------
+
+local C = {
+    bg =
+        Color3.fromRGB(
+            19,
+            21,
+            27
+        ),
+
+    panel =
+        Color3.fromRGB(
+            26,
+            29,
+            37
+        ),
+
+    panel2 =
+        Color3.fromRGB(
+            32,
+            36,
+            46
+        ),
+
+    stroke =
+        Color3.fromRGB(
+            65,
+            71,
+            88
+        ),
+
+    text =
+        Color3.fromRGB(
+            235,
+            238,
+            245
+        ),
+
+    muted =
+        Color3.fromRGB(
+            153,
+            160,
+            178
+        ),
+
+    accent =
+        Color3.fromRGB(
+            99,
+            133,
+            255
+        ),
+
+    good =
+        Color3.fromRGB(
+            88,
+            210,
+            139
+        ),
+
+    bad =
+        Color3.fromRGB(
+            226,
+            91,
+            103
+        ),
+
+    warning =
+        Color3.fromRGB(
+            235,
+            160,
+            58
+        ),
+
+    white =
+        Color3.fromRGB(
+            255,
+            255,
+            255
+        )
+}
+
+------------------------------------------------------------
+-- FONT
+------------------------------------------------------------
+
+local FONT = nil
+
+pcall(function()
+
+    if Drawing
+        and Drawing.Fonts then
+
+        FONT =
+            Drawing.Fonts.SystemBold
+            or Drawing.Fonts.System
+            or Drawing.Fonts.UI
+    end
+end)
+
+------------------------------------------------------------
+-- UI HELPERS
+------------------------------------------------------------
+
+local function clamp(
+    value,
+    minimum,
+    maximum
+)
+
+    if value < minimum then
+        return minimum
+    end
+
+    if value > maximum then
+        return maximum
+    end
+
+    return value
+end
+
+local function viewport()
+    if not Camera then
+
+        Camera =
+            Workspace.CurrentCamera
+    end
+
+    local size =
+        Camera
+        and Camera.ViewportSize
+
+    if not size then
+        return nil, nil
+    end
+
+    return
+        size.X,
+        size.Y
+end
+
+local function uiMouse()
+    local x, y =
+        mouseXY()
+
+    if x and y then
+        return x, y
+    end
+
+    return
+        -10000,
+        -10000
+end
+
+local function inside(
+    mx,
+    my,
+    x,
+    y,
+    width,
+    height
+)
+
+    return
+        mx >= x
+        and my >= y
+        and mx <= x + width
+        and my <= y + height
+end
+
+------------------------------------------------------------
+-- DRAWING POOL
+------------------------------------------------------------
+
+local function square()
+    UI.sqUsed =
+        UI.sqUsed + 1
+
+    local object =
+        UI.squares[
+            UI.sqUsed
+        ]
+
+    if not object then
+
+        object =
+            Drawing.new(
+                "Square"
+            )
+
+        object.Filled =
+            true
+
+        object.ZIndex =
+            300
+
+        UI.squares[
+            UI.sqUsed
+        ] =
+            object
+    end
+
+    object.Visible =
+        true
+
+    return object
+end
+
+local function textObject()
+    UI.txUsed =
+        UI.txUsed + 1
+
+    local object =
+        UI.texts[
+            UI.txUsed
+        ]
+
+    if not object then
+
+        object =
+            Drawing.new(
+                "Text"
+            )
+
+        object.Center =
+            false
+
+        object.Outline =
+            false
+
+        object.ZIndex =
+            302
+
+        if FONT then
+
+            pcall(function()
+
+                object.Font =
+                    FONT
+            end)
+        end
+
+        UI.texts[
+            UI.txUsed
+        ] =
+            object
+    end
+
+    object.Visible =
+        true
+
+    return object
+end
+
+------------------------------------------------------------
+-- RECT
+------------------------------------------------------------
+
+local function rect(
+    x,
+    y,
+    width,
+    height,
+    color,
+    z
+)
+
+    local object =
+        square()
+
+    object.Position =
+        Vector2.new(
+            x,
+            y
+        )
+
+    object.Size =
+        Vector2.new(
+            width,
+            height
+        )
+
+    object.Color =
+        color
+        or C.panel
+
+    object.Filled =
+        true
+
+    object.ZIndex =
+        z
+        or 300
+
+    return object
+end
+
+------------------------------------------------------------
+-- LABEL
+------------------------------------------------------------
+
+local function label(
+    text,
+    x,
+    y,
+    size,
+    color,
+    centered,
+    z
+)
+
+    local object =
+        textObject()
+
+    object.Text =
+        tostring(
+            text
+            or ""
+        )
+
+    object.Position =
+        Vector2.new(
+            x,
+            y
+        )
+
+    object.Color =
+        color
+        or C.text
+
+    object.Center =
+        centered == true
+
+    object.ZIndex =
+        z
+        or 302
+
+    pcall(function()
+
+        object.Size =
+            size
+            or 14
+    end)
+
+    pcall(function()
+
+        object.FontSize =
+            size
+            or 14
+    end)
+
+    return object
+end
+
+------------------------------------------------------------
+-- FRAME
+------------------------------------------------------------
+
+local function beginFrame()
+    UI.sqUsed =
+        0
+
+    UI.txUsed =
+        0
+end
+
+local function endFrame()
+    for index =
+        UI.sqUsed + 1,
+        #UI.squares do
+
+        UI.squares[
+            index
+        ].Visible =
+            false
+    end
+
+    for index =
+        UI.txUsed + 1,
+        #UI.texts do
+
+        UI.texts[
+            index
+        ].Visible =
+            false
+    end
+end
+
+------------------------------------------------------------
+-- REMOVE DRAWINGS
+------------------------------------------------------------
+
+local function removeUI()
+    for _, object in ipairs(
+        UI.squares
+    ) do
+
+        pcall(function()
+
+            object:
+                Remove()
+        end)
+    end
+
+    for _, object in ipairs(
+        UI.texts
+    ) do
+
+        pcall(function()
+
+            object:
+                Remove()
+        end)
+    end
+
+    UI.squares =
+        {}
+
+    UI.texts =
+        {}
+end
+
+------------------------------------------------------------
+-- CLAMP WINDOW
+------------------------------------------------------------
+
+local function clampWindow()
+    local vw,
+        vh =
+        viewport()
+
+    if not vw
+        or not vh then
+
+        return
+    end
+
+    UI.x =
+        clamp(
+            UI.x,
+            4,
+            math.max(
+                4,
+                vw
+                    - UI.w
+                    - 4
+            )
+        )
+
+    UI.y =
+        clamp(
+            UI.y,
+            4,
+            math.max(
+                4,
+                vh
+                    - UI.h
+                    - 4
+            )
+        )
+end
+
+------------------------------------------------------------
+-- NORMAL TOGGLE
+------------------------------------------------------------
+
+local function toggleWidget(
+    mx,
+    my,
+    pressed,
+    x,
+    y,
+    width,
+    text,
+    value,
+    callback
+)
+
+    local hover =
+        inside(
+            mx,
+            my,
+            x,
+            y,
+            width,
+            30
+        )
+
+    rect(
+        x,
+        y,
+        width,
+        30,
+
+        hover
+            and C.panel2
+            or C.panel
+    )
+
+    rect(
+        x
+            + width
+            - 43,
+
+        y + 7,
+
+        31,
+        16,
+
+        value
+            and C.good
+            or C.stroke
+    )
+
+    rect(
+        x
+            + width
+            - (
+                value
+                and 23
+                or 39
+            ),
+
+        y + 9,
+
+        12,
+        12,
+
+        C.white,
+        303
+    )
+
+    label(
+        text,
+
+        x + 10,
+        y + 7,
+
+        14,
+
+        C.text
+    )
+
+    if hover
+        and pressed then
+
+        callback(
+            not value
+        )
+    end
+end
+
+------------------------------------------------------------
+-- WIP / LOCKED FEATURE ROW
+------------------------------------------------------------
+
+local function wipWidget(
+    x,
+    y,
+    width,
+    text
+)
+
+    rect(
+        x,
+        y,
+
+        width,
+        30,
+
+        C.panel
+    )
+
+    --------------------------------------------------------
+    -- LOCKED OFF SWITCH
+    --------------------------------------------------------
+
+    rect(
+        x
+            + width
+            - 43,
+
+        y + 7,
+
+        31,
+        16,
+
+        C.stroke
+    )
+
+    rect(
+        x
+            + width
+            - 39,
+
+        y + 9,
+
+        12,
+        12,
+
+        C.muted,
+        303
+    )
+
+    --------------------------------------------------------
+    -- NAME
+    --------------------------------------------------------
+
+    label(
+        text,
+
+        x + 10,
+        y + 7,
+
+        14,
+
+        C.text
+    )
+
+    --------------------------------------------------------
+    -- WIP
+    --------------------------------------------------------
+
+    label(
+        "WIP",
+
+        x
+            + width
+            - 82,
+
+        y + 7,
+
+        14,
+
+        C.warning
+    )
+end
+
+------------------------------------------------------------
+-- HARD DESTROY
+------------------------------------------------------------
+
+_G.KeroFishingHelpersDestroy =
+function()
+
+    if destroyed then
+        return
+    end
+
+    --------------------------------------------------------
+    -- SAVE FINAL WINDOW POSITION
+    --------------------------------------------------------
+
+    Preferences.uiX =
+        UI.x
+
+    Preferences.uiY =
+        UI.y
+
+    Preferences.nonPerfectEnabled =
+        NonPerfect.enabled
+
+    savePreferences()
+
+    destroyed =
+        true
+
+    running =
+        false
+
+    --------------------------------------------------------
+    -- NON PERFECT
+    --------------------------------------------------------
+
+    local wasNonPerfect =
+        NonPerfect.enabled
+
+    NonPerfect.enabled =
+        false
+
+    stopNonPerfect()
+
+    NonPerfect.cache =
+        nil
+
+    if wasNonPerfect then
+
+        print(
+            "(kero) Force Non-Perfect Catch Disabled"
+        )
+    end
+
+    --------------------------------------------------------
+    -- TRANQUILITY
+    --------------------------------------------------------
+
+    Tranquility.enabled =
+        false
+
+    stopTranquility()
+
+    releaseAllArrows()
+
+    --------------------------------------------------------
+    -- KEEP MATCHA INPUT ENABLED
+    --------------------------------------------------------
+
+    if type(setrobloxinput)
+        == "function" then
+
+        pcall(
+            setrobloxinput,
+            true
+        )
+    end
+
+    --------------------------------------------------------
+    -- UI
+    --------------------------------------------------------
+
+    UI.dragging =
+        false
+
+    removeUI()
+
+    _G.KeroFishingHelpersDestroy =
+        nil
+
+    print(
+        "(kero) FISCH Completely removed"
+    )
+end
+
+------------------------------------------------------------
+-- UI LOOP
+------------------------------------------------------------
+
+task.spawn(function()
+
+    while running
+        and not destroyed do
+
+        ----------------------------------------------------
+        -- INPUT
+        ----------------------------------------------------
+
+        local held =
+            mouseDown()
+
+        local pressed =
+            held
+            and not UI.lastMouse
+
+        UI.lastMouse =
+            held
+
+        local keyX =
+            xDown()
+
+        local xPressed =
+            keyX
+            and not UI.lastX
+
+        UI.lastX =
+            keyX
+
+        if xPressed then
+
+            toggleNonPerfect()
+        end
+
+        ----------------------------------------------------
+        -- MOUSE
+        ----------------------------------------------------
+
+        local mx,
+            my =
+            uiMouse()
+
+        clampWindow()
+
+        local headerHover =
+            inside(
+                mx,
+                my,
+
+                UI.x,
+                UI.y,
+
+                UI.w,
+                36
+            )
+
+        local closeHover =
+            inside(
+                mx,
+                my,
+
+                UI.x
+                    + UI.w
+                    - 35,
+
+                UI.y + 5,
+
+                28,
+                26
+            )
+
+        ----------------------------------------------------
+        -- CLOSE
+        ----------------------------------------------------
+
+        if pressed
+            and closeHover then
+
+            local destroy =
+                _G.KeroFishingHelpersDestroy
+
+            if destroy then
+
+                destroy()
+            end
+
+            return
+        end
+
+        ----------------------------------------------------
+        -- START DRAG
+        ----------------------------------------------------
+
+        if pressed
+            and headerHover
+            and not closeHover then
+
+            UI.dragging =
+                true
+
+            UI.dragDX =
+                mx - UI.x
+
+            UI.dragDY =
+                my - UI.y
+        end
+
+        ----------------------------------------------------
+        -- DRAG UPDATE
+        ----------------------------------------------------
+
+        if UI.dragging then
+
+            if held then
+
+                UI.x =
+                    mx
+                    - UI.dragDX
+
+                UI.y =
+                    my
+                    - UI.dragDY
+
+                clampWindow()
+
+            else
+
+                UI.dragging =
+                    false
+
+                ------------------------------------------------
+                -- SAVE LOCATION ON DRAG RELEASE
+                ------------------------------------------------
+
+                Preferences.uiX =
+                    UI.x
+
+                Preferences.uiY =
+                    UI.y
+
+                savePreferences()
+            end
+        end
+
+        ----------------------------------------------------
+        -- DRAW
+        ----------------------------------------------------
+
+        beginFrame()
+
+        ----------------------------------------------------
+        -- WINDOW
+        ----------------------------------------------------
+
+        rect(
+            UI.x,
+            UI.y,
+
+            UI.w,
+            UI.h,
+
+            C.bg,
+            300
+        )
+
+        ----------------------------------------------------
+        -- HEADER
+        ----------------------------------------------------
+
+        rect(
+            UI.x,
+            UI.y,
+
+            UI.w,
+            36,
+
+            C.panel2,
+            301
+        )
+
+        rect(
+            UI.x,
+            UI.y + 35,
+
+            UI.w,
+            1,
+
+            C.stroke,
+            302
+        )
+
+        ----------------------------------------------------
+        -- TITLE
+        ----------------------------------------------------
+
+        label(
+            "FISCH",
+
+            UI.x + 13,
+            UI.y + 9,
+
+            15,
+
+            C.text,
+            false,
+            304
+        )
+
+        ----------------------------------------------------
+        -- CLOSE
+        ----------------------------------------------------
+
+        rect(
+            UI.x
+                + UI.w
+                - 35,
+
+            UI.y + 5,
+
+            28,
+            26,
+
+            closeHover
+                and C.bad
+                or C.panel,
+
+            303
+        )
+
+        label(
+            "X",
+
+            UI.x
+                + UI.w
+                - 21,
+
+            UI.y + 15,
+
+            15,
+
+            C.text,
+            true,
+            304
+        )
+
+        ----------------------------------------------------
+        -- CONTENT
+        ----------------------------------------------------
+
+        local x =
+            UI.x + 12
+
+        local y =
+            UI.y + 51
+
+        local width =
+            UI.w - 24
+
+        ----------------------------------------------------
+        -- FORCE NON PERFECT
+        ----------------------------------------------------
+
+        toggleWidget(
+            mx,
+            my,
+            pressed,
+
+            x,
+            y,
+            width,
+
+            "Force Non-Perfect Catch",
+
+            NonPerfect.enabled,
+
+            setNonPerfect
+        )
+
+        label(
+            "Hotkey: X",
+
+            x + 10,
+            y + 41,
+
+            12,
+
+            C.muted
+        )
+
+        local nonPerfectText =
+            "Status: OFF"
+
+        local nonPerfectColor =
+            C.bad
+
+        if NonPerfect.enabled then
+
+            if NonPerfect.active then
+
+                nonPerfectText =
+                    "Status: ACTIVE - perfect = false"
+
+                nonPerfectColor =
+                    C.good
+
+            elseif NonPerfect.cache then
+
+                nonPerfectText =
+                    "Status: ARMED"
+
+                nonPerfectColor =
+                    C.accent
+
+            else
+
+                nonPerfectText =
+                    "Status: searching GC"
+
+                nonPerfectColor =
+                    C.warning
+            end
+        end
+
+        label(
+            nonPerfectText,
+
+            x + 10,
+            y + 61,
+
+            12,
+
+            nonPerfectColor
+        )
+
+        ----------------------------------------------------
+        -- TRANQUILITY WIP
+        ----------------------------------------------------
+
+        local ty =
+            y + 92
+
+        wipWidget(
+            x,
+            ty,
+            width,
+            "Tranquility Auto Rhythm"
+        )
+
+        label(
+            "Status: WIP",
+
+            x + 10,
+            ty + 41,
+
+            12,
+
+            C.warning
+        )
+
+        ----------------------------------------------------
+        -- WARNING
+        ----------------------------------------------------
+
+        local warningY =
+            ty + 67
+
+        rect(
+            x,
+            warningY,
+
+            width,
+            67,
+
+            C.panel
+        )
+
+        label(
+            "IMPORTANT",
+
+            x + 10,
+            warningY + 8,
+
+            13,
+
+            C.bad
+        )
+
+        label(
+            "You must catch 1 fish with Non-Perfect Catch ON for it to activate correctly.",
+
+            x + 10,
+            warningY + 27,
+
+            12,
+
+            C.bad
+        )
+
+        label(
+            "The first fish you reel in may still count as a perfect catch.",
+
+            x + 10,
+            warningY + 45,
+
+            12,
+
+            C.bad
+        )
+
+        ----------------------------------------------------
+        -- WATERMARK
+        ----------------------------------------------------
+
+        label(
+            "made by kerog138 on discord",
+
+            UI.x
+                + UI.w
+                - 190,
+
+            UI.y
+                + UI.h
+                - 19,
+
+            12,
+
+            C.muted
+        )
+
+        endFrame()
+
+        task.wait(
+            0.01
+        )
+    end
+end)
+
+------------------------------------------------------------
+-- PRE-CACHE NON PERFECT
+------------------------------------------------------------
+
+task.spawn(function()
+
+    task.wait(
+        0.25
+    )
+
+    if running
+        and not destroyed then
+
+        findPerfectCache(
+            true
+        )
+
+        ----------------------------------------------------
+        -- RESTORE SAVED NON-PERFECT PREFERENCE
+        ----------------------------------------------------
+
+        if Preferences.nonPerfectEnabled then
+
+            setNonPerfect(
+                true,
+                true
+            )
+
+            if NonPerfect.enabled then
+
+                print(
+                    "(kero) Force Non-Perfect Catch Enabled (restored)"
+                )
+            end
+        end
+    end
+end)
+
+------------------------------------------------------------
+-- READY
+------------------------------------------------------------
+
+print(
+    "(kero) FISCH Loaded"
+)
+
+print(
+    "(kero) Preferences: FISCH/preferences.json"
+)
+
+print(
+    "(kero) Force Non-Perfect Catch - X Toggle"
+)
+
+print(
+    "(kero) Tranquility Auto Rhythm - WIP"
+)
+
+print(
+    "(kero) made by kerog138 on discord"
+)
